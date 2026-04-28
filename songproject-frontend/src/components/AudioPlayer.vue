@@ -37,13 +37,11 @@ function handleEnded() {
   emit('onEnded')
 }
 
-// Observar el prop stopAudio: si pasa a true, pausar; si pasa a false, reanudar
 watch(() => props.stopAudio, (shouldStop) => {
   if (!audioEl.value) return
   if (shouldStop) {
     audioEl.value.pause()
   } else {
-    // play() devuelve una promesa; ignoramos errores (p.ej. interrupción)
     audioEl.value.play().catch(() => {})
   }
 })

@@ -28,7 +28,7 @@ const routes = [
     path: '/songs/:id',
     name: 'play',
     component: PlayView,
-    //props: true, // el :id se pasa como prop a PlayView
+    props: true
   },
   {
     path: '/faq',

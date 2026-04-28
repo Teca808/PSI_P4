@@ -1,157 +1,302 @@
 <template>
-	<div class="lyrics-display">
-		<div v-if="lines.length === 0" class="no-lyrics">No lyrics available</div>
+  <div class="lyrics-display">
+    <div v-if="lines.length === 0" class="no-lyrics">No lyrics available</div>
 
-		<div v-else class="lines">
-			<div
-				v-for="(line, idx) in lines"
-				:key="idx"
-				:class="['line', { active: idx === activeIndex }]"
-			>
-				<span class="time">{{ formatTime(line.time) }}</span>
+    <div v-else class="lines">
+      <div
+        v-for="offset in [-1, 0, 1]"
+        :key="offset"
+        class="line"
+        :class="{ active: offset === 0, adjacent: offset !== 0 }"
+      >
+        <template v-if="getLine(currentIndex + offset)">
+          <span>{{ getLine(currentIndex + offset).textBefore }}</span>
 
-				<span class="text-before">{{ line.textBefore }}</span>
+          <template v-if="getLine(currentIndex + offset).hasGap">
+            <template v-if="offset === 0">
+              <input
+                ref="gapInput"
+                v-model="userInput"
+                type="text"
+                class="gap-input"
+                :class="{ correct: isResolved && isCorrect, incorrect: wasWrong }"
+                :disabled="isResolved"
+                @input="handleInput"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button
+                v-if="!isResolved"
+                class="skip-btn"
+                @click="handleSkip"
+                type="button"
+              >
+                Skip
+              </button>
+            </template>
+            <template v-else>
+              <span class="gap-preview">____</span>
+            </template>
+          </template>
 
-				<template v-if="line.hasGap">
-					<input
-						v-model="answers[idx].value"
-						@blur="checkAnswer(idx)"
-						:class="['gap-input', answers[idx].status]"
-						placeholder="..."
-					/>
-					<span class="text-after">{{ line.textAfter }}</span>
-				</template>
-
-				<template v-else>
-					<span class="full-text">{{ line.textBefore }}</span>
-				</template>
-			</div>
-		</div>
-	</div>
+          <span>{{ getLine(currentIndex + offset).textAfter }}</span>
+        </template>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { computed, reactive, watch, toRefs } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { parseLrc, getCurrentLineIndex } from '@/utils/lrcParser'
 
 const props = defineProps({
-	song: {
-		type: Object,
-		required: true,
-	},
-	currentTime: {
-		type: Number,
-		default: 0,
-	},
+  song: {
+    type: Object,
+    required: true,
+  },
+  currentTime: {
+    type: Number,
+    default: 0,
+  },
 })
 
-// Parsear el contenido del .lrc ya descargado por PlayView
+const emit = defineEmits(['stopAudio', 'startAudio'])
+
+// Parsear el .lrc una sola vez por canción
 const lines = computed(() => {
-	const lrc = props.song?.lrc_content || ''
-	return parseLrc(lrc)
+  const lrc = props.song?.lrc_content || ''
+  return parseLrc(lrc)
 })
 
-// Mantener respuestas para las líneas con hueco
-const answers = reactive({})
+// Estado por línea: { resolved, correct, skipped, attempts }
+const lineState = ref({})
 
-watch(lines, (newLines) => {
-	// Inicializar estructura de respuestas
-	newLines.forEach((ln, i) => {
-		if (ln.hasGap && !answers[i]) {
-			answers[i] = { value: '', status: 'pending' }
-		}
-	})
-}, { immediate: true })
+// Estado del input actual
+const userInput = ref('')
+const wasWrong = ref(false)
+const gapInput = ref(null)
 
-function normalizeText(s) {
-	return (s || '').trim().toLowerCase()
+// Contadores totales
+let totalCorrect = 0
+let totalWrong = 0
+
+const currentIndex = computed(() =>
+  getCurrentLineIndex(props.currentTime, lines.value)
+)
+
+const currentLineState = computed(
+  () => lineState.value[currentIndex.value] || null
+)
+
+const isResolved = computed(() => currentLineState.value?.resolved === true)
+const isCorrect = computed(() => currentLineState.value?.correct === true)
+
+function ensureLineState(idx) {
+  if (!lineState.value[idx]) {
+    lineState.value[idx] = {
+      resolved: false,
+      correct: false,
+      skipped: false,
+      attempts: 0,
+    }
+  }
 }
 
-function checkAnswer(i) {
-	const ln = lines.value[i]
-	if (!ln || !ln.hasGap) return
-	const user = normalizeText(answers[i].value)
-	const correct = normalizeText(ln.hiddenWord)
-	if (user && user === correct) {
-		answers[i].status = 'correct'
-	} else if (user) {
-		answers[i].status = 'wrong'
-	} else {
-		answers[i].status = 'pending'
-	}
+function getLine(idx) {
+  if (idx < 0 || idx >= lines.value.length) return null
+  return lines.value[idx]
 }
+
+function normalize(s) {
+  return (s || '').trim().toLowerCase()
+}
+
+function handleInput() {
+  const idx = currentIndex.value
+  const line = getLine(idx)
+  if (!line || !line.hasGap) return
+
+  ensureLineState(idx)
+  const state = lineState.value[idx]
+  if (state.resolved) return
+
+  const expected = normalize(line.hiddenWord)
+  const typed = normalize(userInput.value)
+
+  if (typed === expected) {
+    state.correct = true
+    state.resolved = true
+    totalCorrect++
+    wasWrong.value = false
+    emit('startAudio')
+  }
+}
+
+function handleSkip() {
+  const idx = currentIndex.value
+  const line = getLine(idx)
+  if (!line || !line.hasGap) return
+
+  ensureLineState(idx)
+  const state = lineState.value[idx]
+  if (state.resolved) return
+
+  state.skipped = true
+  state.resolved = true
+  state.attempts++
+  totalWrong++
+  wasWrong.value = false
+  emit('startAudio')
+}
+
+// Cuando cambia la línea actual: cerrar la anterior si quedó pendiente y resetear input
+watch(currentIndex, (newIdx, oldIdx) => {
+  if (oldIdx >= 0 && oldIdx !== newIdx) {
+    const prevLine = getLine(oldIdx)
+    if (prevLine?.hasGap) {
+      const prevState = lineState.value[oldIdx]
+      if (prevState && !prevState.resolved) {
+        const failedAttempts = Math.max(prevState.attempts, 1)
+        totalWrong += failedAttempts
+        prevState.resolved = true
+      }
+    }
+  }
+
+  userInput.value = ''
+  wasWrong.value = false
+
+  const newLine = getLine(newIdx)
+  if (newLine?.hasGap) {
+    nextTick(() => {
+      if (gapInput.value) gapInput.value.focus()
+    })
+  }
+})
+
+// Detectar fin de línea con hueco no resuelto: parar el audio
+watch(
+  () => props.currentTime,
+  (t) => {
+    const idx = currentIndex.value
+    const line = getLine(idx)
+    if (!line || !line.hasGap) return
+
+    ensureLineState(idx)
+    const state = lineState.value[idx]
+    if (state.resolved) return
+
+    const nextLine = getLine(idx + 1)
+    const lineEndTime = nextLine ? nextLine.time : Infinity
+
+    if (t >= lineEndTime - 0.05) {
+      if (userInput.value.trim() !== '') {
+        state.attempts++
+        wasWrong.value = true
+      }
+      emit('stopAudio')
+    }
+  }
+)
 
 function getSummary() {
-	const newLines = lines.value
-	let correct = 0
-	let wrong = 0
-	newLines.forEach((ln, i) => {
-		if (!ln.hasGap) return
-		const a = answers[i]
-		if (!a || a.status === 'pending') {
-			wrong += 1
-		} else if (a.status === 'correct') {
-			correct += 1
-		} else if (a.status === 'wrong') {
-			wrong += 1
-		}
-	})
-	return { correct, wrong }
+  // Cerrar la última línea si quedó pendiente
+  const idx = currentIndex.value
+  const line = getLine(idx)
+  if (line?.hasGap) {
+    const state = lineState.value[idx]
+    if (state && !state.resolved) {
+      const failedAttempts = Math.max(state.attempts, 1)
+      totalWrong += failedAttempts
+      state.resolved = true
+    }
+  }
+  return { correct: totalCorrect, wrong: totalWrong }
 }
 
 defineExpose({ getSummary })
-
-const activeIndex = computed(() => getCurrentLineIndex(props.currentTime, lines.value))
-
-// Formatear tiempo en mm:ss
-function formatTime(s) {
-	const sec = Math.floor(s || 0)
-	const m = Math.floor(sec / 60).toString().padStart(2, '0')
-	const ss = (sec % 60).toString().padStart(2, '0')
-	return `${m}:${ss}`
-}
 </script>
 
 <style scoped>
 .lyrics-display {
-	max-width: 800px;
-	margin: 1rem auto;
-	text-align: left;
+  max-width: 800px;
+  margin: 1rem auto;
+  text-align: center;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .line {
-	display: flex;
-	gap: 0.5rem;
-	align-items: center;
-	padding: 0.25rem 0;
+  min-height: 1.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+}
+
+.line.adjacent {
+  opacity: 0.55;
+  font-size: 0.9rem;
 }
 
 .line.active {
-	background: rgba(59,130,246,0.06);
-}
-
-.time {
-	width: 3.2rem;
-	color: #999;
-	font-size: 0.85rem;
+  font-weight: bold;
+  font-size: 1.1rem;
 }
 
 .gap-input {
-	border: none;
-	border-bottom: 1px solid #ccc;
-	padding: 0.25rem 0.5rem;
-	min-width: 120px;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 0.9rem;
+  outline: none;
+  text-align: center;
+  min-width: 90px;
+  color: #111;
+  background: white;
+  text-shadow: none;
 }
 
 .gap-input.correct {
-	border-bottom-color: #16a34a;
+  background-color: #d4edda;
+  border-color: #28a745;
 }
 
-.gap-input.wrong {
-	border-bottom-color: #dc2626;
+.gap-input.incorrect {
+  background-color: #f8d7da;
+  border-color: #dc3545;
+}
+
+.gap-preview {
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 2px;
+}
+
+.skip-btn {
+  padding: 0.2rem 0.6rem;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: #333;
+  text-shadow: none;
+}
+
+.skip-btn:hover {
+  background-color: #e0e0e0;
 }
 
 .no-lyrics {
-	color: #777;
+  color: #ddd;
 }
 </style>
