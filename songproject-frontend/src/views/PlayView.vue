@@ -21,10 +21,9 @@
         @startAudio="stopAudio = false"
       />
 
-      <div v-if="summary" class="summary">
+      <div v-if="summary" class="summary" data-cy="summary">
         <h2>Results</h2>
-        <p>Correct: {{ summary.correct }}</p>
-        <p>Wrong: {{ summary.wrong }}</p>
+        <p>Correct answers: {{ summary.correct }} - Wrong answers: {{ summary.wrong }}</p>
       </div>
     </div>
   </div>
@@ -68,7 +67,6 @@ onMounted(async () => {
   try {
     const songData = await apiFetch(`/api/v1/songs/${props.id}/`)
 
-    // lrc_file es una URL absoluta: descargamos su contenido
     const lrcResponse = await fetch(songData.lrc_file)
     if (!lrcResponse.ok) throw new Error('No se pudo descargar el .lrc')
     const lrcText = await lrcResponse.text()
@@ -90,7 +88,6 @@ function onTimeUpdate(t) {
 }
 
 async function onEnded() {
-  // Pedir el resumen final al componente de letras
   const result =
     lyricsRef.value && lyricsRef.value.getSummary
       ? lyricsRef.value.getSummary()
@@ -98,7 +95,6 @@ async function onEnded() {
 
   summary.value = result
 
-  // Si el usuario está autenticado, crear/actualizar SongUser
   if (auth.isAuthenticated && song.value) {
     try {
       await apiFetch('/api/v1/songusers/', {

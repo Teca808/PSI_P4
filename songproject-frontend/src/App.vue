@@ -7,15 +7,16 @@
       </router-link>
 
       <nav class="nav-links">
-        <router-link to="/">Home</router-link>
+        <router-link to="/" data-cy="home-cypress-test">Home</router-link>
 
-        <!-- Alterna entre Log-In y Log-Out según el estado de autenticación -->
-        <router-link v-if="!auth.isAuthenticated" to="/log-in">
+        <router-link
+          v-if="!auth.isAuthenticated"
+          to="/log-in"
+          data-cy="login-cypress-test"
+        >
           Admin Log-In
         </router-link>
-        <router-link v-else to="/log-out">
-          Log-Out
-        </router-link>
+        <router-link v-else to="/log-out">Log-Out</router-link>
 
         <router-link to="/faq">FAQ</router-link>
       </nav>
@@ -25,11 +26,6 @@
     <main class="main-content">
       <router-view />
     </main>
-
-    <!-- Footer -->
-    <footer class="footer">
-      © 2026 Copy ▾ R. Marabini
-    </footer>
   </div>
 </template>
 
@@ -47,7 +43,6 @@ const auth = useAuthStore()
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Barra de navegación */
 .navbar {
   display: flex;
   align-items: center;
@@ -81,14 +76,11 @@ const auth = useAuthStore()
   color: white;
 }
 
-/* La clase router-link-active la añade Vue Router automáticamente
-   al link cuya ruta coincide con la URL actual */
 .nav-links a.router-link-active {
   color: white;
   font-weight: 500;
 }
 
-/* Contenido principal */
 .main-content {
   flex: 1;
   padding: 2rem;
@@ -97,7 +89,6 @@ const auth = useAuthStore()
   margin: 0 auto;
 }
 
-/* Footer */
 .footer {
   text-align: center;
   padding: 1rem;

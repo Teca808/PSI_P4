@@ -6,8 +6,11 @@
         type="text"
         placeholder="Search songs by title"
         class="search-input"
+        data-cy="search_text"
       />
-      <button type="submit" class="search-btn">Search</button>
+      <button type="submit" class="search-btn" data-cy="search_button">
+        Search
+      </button>
     </form>
 
     <div v-if="searched" class="search-results">

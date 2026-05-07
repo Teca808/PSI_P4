@@ -3,43 +3,50 @@
     <div v-if="lines.length === 0" class="no-lyrics">No lyrics available</div>
 
     <div v-else class="lines">
-      <div
-        v-for="offset in [-1, 0, 1]"
-        :key="offset"
-        class="line"
-        :class="{ active: offset === 0, adjacent: offset !== 0 }"
-      >
-        <template v-if="getLine(currentIndex + offset)">
-          <span>{{ getLine(currentIndex + offset).textBefore }}</span>
+      <!-- Línea anterior -->
+      <div class="line adjacent">
+        <template v-if="getLine(currentIndex - 1)">
+          <span>{{ renderLine(getLine(currentIndex - 1)) }}</span>
+        </template>
+      </div>
 
-          <template v-if="getLine(currentIndex + offset).hasGap">
-            <template v-if="offset === 0">
-              <input
-                ref="gapInput"
-                v-model="userInput"
-                type="text"
-                class="gap-input"
-                :class="{ correct: isResolved && isCorrect, incorrect: wasWrong }"
-                :disabled="isResolved"
-                @input="handleInput"
-                autocomplete="off"
-                spellcheck="false"
-              />
-              <button
-                v-if="!isResolved"
-                class="skip-btn"
-                @click="handleSkip"
-                type="button"
-              >
-                Skip
-              </button>
-            </template>
-            <template v-else>
-              <span class="gap-preview">____</span>
-            </template>
+      <!-- Línea actual -->
+      <div class="line active">
+        <template v-if="currentLine">
+          <span>{{ currentLine.textBefore }}</span>
+
+          <template v-if="currentLine.hasGap">
+            <input
+              ref="gapInputEl"
+              v-model="userInput"
+              type="text"
+              class="gap-input"
+              data-cy="blankInput"
+              :class="{ correct: isCorrect, incorrect: wasWrong }"
+              :disabled="isLocked"
+              @keydown.enter.prevent="handleEnter"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button
+              v-if="!isLocked"
+              class="skip-btn"
+              data-cy="skip"
+              @click="handleSkip"
+              type="button"
+            >
+              Skip
+            </button>
           </template>
 
-          <span>{{ getLine(currentIndex + offset).textAfter }}</span>
+          <span>{{ currentLine.textAfter }}</span>
+        </template>
+      </div>
+
+      <!-- Línea siguiente -->
+      <div class="line adjacent">
+        <template v-if="getLine(currentIndex + 1)">
+          <span>{{ renderLine(getLine(currentIndex + 1)) }}</span>
         </template>
       </div>
     </div>
@@ -47,37 +54,26 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, reactive } from 'vue'
 import { parseLrc, getCurrentLineIndex } from '@/utils/lrcParser'
 
 const props = defineProps({
-  song: {
-    type: Object,
-    required: true,
-  },
-  currentTime: {
-    type: Number,
-    default: 0,
-  },
+  song: { type: Object, required: true },
+  currentTime: { type: Number, default: 0 },
 })
 
 const emit = defineEmits(['stopAudio', 'startAudio'])
 
-// Parsear el .lrc una sola vez por canción
 const lines = computed(() => {
   const lrc = props.song?.lrc_content || ''
   return parseLrc(lrc)
 })
 
-// Estado por línea: { resolved, correct, skipped, attempts }
-const lineState = ref({})
-
-// Estado del input actual
+const lineState = reactive({})
 const userInput = ref('')
 const wasWrong = ref(false)
-const gapInput = ref(null)
+const gapInputEl = ref(null)
 
-// Contadores totales
 let totalCorrect = 0
 let totalWrong = 0
 
@@ -85,17 +81,22 @@ const currentIndex = computed(() =>
   getCurrentLineIndex(props.currentTime, lines.value)
 )
 
+const currentLine = computed(() => getLine(currentIndex.value))
+
 const currentLineState = computed(
-  () => lineState.value[currentIndex.value] || null
+  () => lineState[currentIndex.value] || null
 )
 
-const isResolved = computed(() => currentLineState.value?.resolved === true)
+const isLocked = computed(() => {
+  const s = currentLineState.value
+  return s?.correct === true || s?.skipped === true
+})
+
 const isCorrect = computed(() => currentLineState.value?.correct === true)
 
 function ensureLineState(idx) {
-  if (!lineState.value[idx]) {
-    lineState.value[idx] = {
-      resolved: false,
+  if (!lineState[idx]) {
+    lineState[idx] = {
       correct: false,
       skipped: false,
       attempts: 0,
@@ -112,24 +113,34 @@ function normalize(s) {
   return (s || '').trim().toLowerCase()
 }
 
-function handleInput() {
+function renderLine(line) {
+  if (!line) return ''
+  if (!line.hasGap) return line.textBefore
+  return `${line.textBefore}____${line.textAfter}`
+}
+
+function handleEnter() {
   const idx = currentIndex.value
   const line = getLine(idx)
   if (!line || !line.hasGap) return
 
   ensureLineState(idx)
-  const state = lineState.value[idx]
-  if (state.resolved) return
+  const state = lineState[idx]
+  if (state.correct || state.skipped) return
 
   const expected = normalize(line.hiddenWord)
   const typed = normalize(userInput.value)
 
   if (typed === expected) {
     state.correct = true
-    state.resolved = true
     totalCorrect++
     wasWrong.value = false
     emit('startAudio')
+  } else if (typed.length > 0) {
+    state.attempts++
+    totalWrong++
+    wasWrong.value = true
+    userInput.value = ''
   }
 }
 
@@ -139,38 +150,28 @@ function handleSkip() {
   if (!line || !line.hasGap) return
 
   ensureLineState(idx)
-  const state = lineState.value[idx]
-  if (state.resolved) return
+  const state = lineState[idx]
+  if (state.correct || state.skipped) return
 
   state.skipped = true
-  state.resolved = true
   state.attempts++
   totalWrong++
   wasWrong.value = false
+  userInput.value = ''
   emit('startAudio')
 }
 
-// Cuando cambia la línea actual: cerrar la anterior si quedó pendiente y resetear input
-watch(currentIndex, (newIdx, oldIdx) => {
-  if (oldIdx >= 0 && oldIdx !== newIdx) {
-    const prevLine = getLine(oldIdx)
-    if (prevLine?.hasGap) {
-      const prevState = lineState.value[oldIdx]
-      if (prevState && !prevState.resolved) {
-        const failedAttempts = Math.max(prevState.attempts, 1)
-        totalWrong += failedAttempts
-        prevState.resolved = true
-      }
-    }
-  }
-
+watch(currentIndex, (newIdx) => {
   userInput.value = ''
   wasWrong.value = false
 
   const newLine = getLine(newIdx)
   if (newLine?.hasGap) {
     nextTick(() => {
-      if (gapInput.value) gapInput.value.focus()
+      const el = gapInputEl.value
+      if (el && typeof el.focus === 'function') {
+        el.focus()
+      }
     })
   }
 })
@@ -184,34 +185,19 @@ watch(
     if (!line || !line.hasGap) return
 
     ensureLineState(idx)
-    const state = lineState.value[idx]
-    if (state.resolved) return
+    const state = lineState[idx]
+    if (state.correct || state.skipped) return
 
     const nextLine = getLine(idx + 1)
     const lineEndTime = nextLine ? nextLine.time : Infinity
 
     if (t >= lineEndTime - 0.05) {
-      if (userInput.value.trim() !== '') {
-        state.attempts++
-        wasWrong.value = true
-      }
       emit('stopAudio')
     }
   }
 )
 
 function getSummary() {
-  // Cerrar la última línea si quedó pendiente
-  const idx = currentIndex.value
-  const line = getLine(idx)
-  if (line?.hasGap) {
-    const state = lineState.value[idx]
-    if (state && !state.resolved) {
-      const failedAttempts = Math.max(state.attempts, 1)
-      totalWrong += failedAttempts
-      state.resolved = true
-    }
-  }
   return { correct: totalCorrect, wrong: totalWrong }
 }
 
@@ -274,11 +260,6 @@ defineExpose({ getSummary })
 .gap-input.incorrect {
   background-color: #f8d7da;
   border-color: #dc3545;
-}
-
-.gap-preview {
-  color: rgba(255, 255, 255, 0.5);
-  letter-spacing: 2px;
 }
 
 .skip-btn {

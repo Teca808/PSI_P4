@@ -1,6 +1,7 @@
 <template>
   <audio
     ref="audioEl"
+    id="my-audio"
     :src="song?.audio_file"
     controls
     @timeupdate="handleTimeUpdate"

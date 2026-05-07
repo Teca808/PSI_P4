@@ -9,10 +9,11 @@
     <div v-else class="song-grid">
       <router-link
         v-for="song in songs"
-        :key="song.id"
-        :to="`/songs/${song.id}`"
-        class="song-card"
-      >
+          :key="song.id"
+          :to="`/songs/${song.id}`"
+          class="song-card"
+          :data-cy="song.title"
+        >
         <img
           v-if="song.background_image"
           :src="song.background_image"

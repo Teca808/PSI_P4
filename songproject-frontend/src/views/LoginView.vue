@@ -8,6 +8,7 @@
           v-model="username"
           type="text"
           placeholder="username"
+          data-cy="username"
           required
           :disabled="loading"
         />
@@ -15,9 +16,14 @@
           v-model="password"
           type="password"
           placeholder="Password"
+          data-cy="password"
           required
           :disabled="loading"
         />
+
+<button type="submit" class="login-btn" :disabled="loading">
+  {{ loading ? 'LOGGING IN...' : 'LOG IN' }}
+</button>
 
         <button type="submit" class="login-btn" :disabled="loading">
           {{ loading ? 'LOGGING IN...' : 'LOG IN' }}
