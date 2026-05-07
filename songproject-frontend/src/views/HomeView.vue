@@ -1,12 +1,13 @@
 <template>
   <div class="home-view">
     <section class="hero">
-      <h1>Learn a language through songs</h1>
+      <h1>
+        Learn languages through
+        <span class="accent">songs</span>
+      </h1>
       <p class="description">
-        "Songs" is the new way to learn English and other languages through music
-        and the lyrics of your favourite songs. Improve and practise your listening
-        skills with the best music videos. Fill in the gaps to the lyrics as you
-        listen and sing Karaoke to your favourites.
+        Improve your listening skills with the music you love. Fill in the gaps
+        of your favorite lyrics and turn karaoke into a learning experience.
       </p>
 
       <button
@@ -19,11 +20,18 @@
     </section>
 
     <section class="top-songs">
-      <h2>Top Songs</h2>
+      <h2 class="section-title">
+        <span class="section-bar"></span>
+        Top Songs
+      </h2>
       <SongList :songs="topSongs" :loading="loadingTop" />
     </section>
 
     <section class="search-section">
+      <h2 class="section-title">
+        <span class="section-bar"></span>
+        Find a song
+      </h2>
       <SongSearch />
     </section>
 
@@ -45,16 +53,12 @@ const loadingTop = ref(false)
 const loadingRandom = ref(false)
 const error = ref('')
 
-// Cargar top 3 canciones al montar
 onMounted(async () => {
   loadingTop.value = true
   try {
-    // Usar el endpoint custom del backend
-    const data = await apiFetch('/api/v1/songs/top/?n=3')
-    // devuelve un array directo
-    topSongs.value = Array.isArray(data) ? data : []
+    topSongs.value = await apiFetch('/api/v1/songs/top/?n=3')
   } catch (err) {
-    error.value = `Error cargando top songs: ${err.message}`
+    error.value = `Error loading top songs: ${err.message}`
     console.error(err)
   } finally {
     loadingTop.value = false
@@ -65,11 +69,10 @@ async function playRandomSong() {
   loadingRandom.value = true
   error.value = ''
   try {
-    // Llamar al endpoint random del backend
     const song = await apiFetch('/api/v1/songs/random/')
     router.push(`/songs/${song.id}`)
   } catch (err) {
-    error.value = `Error con random song: ${err.message}`
+    error.value = `Error: ${err.message}`
     console.error(err)
   } finally {
     loadingRandom.value = false
@@ -81,56 +84,85 @@ async function playRandomSong() {
 .home-view {
   display: flex;
   flex-direction: column;
-  gap: 3rem;
-  align-items: center;
+  gap: 4rem;
+}
+
+.hero {
   text-align: center;
+  padding: 3rem 0 1rem;
 }
 
 .hero h1 {
-  font-size: 2rem;
-  font-weight: 400;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -1px;
   margin-bottom: 1rem;
+  line-height: 1.2;
+}
+
+.hero h1 .accent {
+  color: var(--accent);
+  text-shadow: 0 0 32px var(--accent-glow);
 }
 
 .description {
   max-width: 600px;
-  color: #555;
-  margin-bottom: 1.5rem;
+  margin: 0 auto 2rem;
+  color: var(--text-secondary);
+  font-size: 1.05rem;
 }
 
 .random-btn {
-  background-color: #3b82f6;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, var(--accent), #6ba3ff);
   color: white;
   border: none;
-  padding: 0.5rem 1.25rem;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  padding: 0.85rem 1.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  box-shadow: var(--shadow-glow);
+  transition: all 0.2s;
 }
 
 .random-btn:hover:not(:disabled) {
-  background-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px var(--accent-glow);
 }
 
 .random-btn:disabled {
-  background-color: #9ca3af;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.top-songs {
-  width: 100%;
+.btn-icon {
+  font-size: 1.1rem;
 }
 
-.top-songs h2 {
-  font-weight: 500;
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.4rem;
+  font-weight: 700;
   margin-bottom: 1.5rem;
+  letter-spacing: -0.3px;
 }
 
-.search-section {
-  width: 100%;
+.section-bar {
+  width: 4px;
+  height: 24px;
+  background: var(--accent);
+  border-radius: 2px;
+  box-shadow: 0 0 12px var(--accent-glow);
 }
 
 .error {
-  color: #dc2626;
+  color: var(--error);
+  text-align: center;
   font-size: 0.9rem;
 }
 </style>

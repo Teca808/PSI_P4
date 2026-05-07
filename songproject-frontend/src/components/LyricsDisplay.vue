@@ -62,7 +62,11 @@ const props = defineProps({
   currentTime: { type: Number, default: 0 },
 })
 
-const emit = defineEmits(['stopAudio', 'startAudio'])
+const emit = defineEmits(['stopAudio', 'startAudio', 'scoreChange'])
+
+function emitScore() {
+  emit('scoreChange', { correct: totalCorrect, wrong: totalWrong })
+}
 
 const lines = computed(() => {
   const lrc = props.song?.lrc_content || ''
@@ -136,11 +140,14 @@ function handleEnter() {
     totalCorrect++
     wasWrong.value = false
     emit('startAudio')
+    emitScore()
   } else if (typed.length > 0) {
     state.attempts++
     totalWrong++
     wasWrong.value = true
     userInput.value = ''
+    emit('stopAudio') 
+    emitScore() 
   }
 }
 
@@ -159,6 +166,7 @@ function handleSkip() {
   wasWrong.value = false
   userInput.value = ''
   emit('startAudio')
+  emitScore()
 }
 
 watch(currentIndex, (newIdx) => {
@@ -207,77 +215,99 @@ defineExpose({ getSummary })
 <style scoped>
 .lyrics-display {
   max-width: 800px;
-  margin: 1rem auto;
+  margin: 0 auto;
   text-align: center;
-  color: white;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  width: 100%;
 }
 
 .lines {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.6rem;
 }
 
 .line {
-  min-height: 1.8rem;
+  min-height: 2.2rem;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
 }
 
 .line.adjacent {
-  opacity: 0.55;
+  opacity: 0.45;
   font-size: 0.9rem;
 }
 
 .line.active {
-  font-weight: bold;
-  font-size: 1.1rem;
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: white;
 }
 
 .gap-input {
-  padding: 0.2rem 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-weight: 600;
   outline: none;
   text-align: center;
-  min-width: 90px;
-  color: #111;
-  background: white;
+  min-width: 120px;
+  color: var(--text-primary);
+  background: var(--bg-card);
   text-shadow: none;
+  box-shadow: 0 0 16px var(--accent-glow);
+  transition: all 0.2s;
+}
+
+.gap-input:focus {
+  box-shadow: 0 0 24px var(--accent-glow);
 }
 
 .gap-input.correct {
-  background-color: #d4edda;
-  border-color: #28a745;
+  background-color: rgba(74, 222, 128, 0.15);
+  border-color: var(--success);
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.4);
 }
 
 .gap-input.incorrect {
-  background-color: #f8d7da;
-  border-color: #dc3545;
+  background-color: rgba(248, 113, 113, 0.15);
+  border-color: var(--error);
+  box-shadow: 0 0 16px rgba(248, 113, 113, 0.4);
+  animation: shake 0.4s;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
 }
 
 .skip-btn {
-  padding: 0.2rem 0.6rem;
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  font-size: 0.8rem;
+  padding: 0.4rem 0.9rem;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  color: #333;
+  color: var(--text-primary);
   text-shadow: none;
+  transition: all 0.2s;
 }
 
 .skip-btn:hover {
-  background-color: #e0e0e0;
+  background-color: var(--bg-card);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .no-lyrics {
-  color: #ddd;
+  color: rgba(255, 255, 255, 0.6);
 }
 </style>

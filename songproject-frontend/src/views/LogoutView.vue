@@ -1,14 +1,18 @@
 <template>
   <div class="logout-view">
     <div class="logout-card">
-      <h2>Log Out</h2>
-      <p>You will be redirected to home in {{ seconds }} seconds</p>
+      <span class="logout-icon">👋</span>
+      <h2>See you soon</h2>
+      <p>You'll be redirected home in <strong>{{ seconds }}</strong> seconds</p>
+      <div class="progress-bar">
+        <div class="progress-fill" :style="{ width: `${progress}%` }"></div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { apiFetch } from '@/api'
@@ -17,38 +21,31 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const seconds = ref(5)
+const progress = computed(() => ((5 - seconds.value) / 5) * 100)
 let intervalId = null
 let timeoutId = null
 
 onMounted(async () => {
-  // Intentar invalidar el token en el servidor
   try {
     if (auth.token) {
-      await apiFetch('/api/v1/token/logout/', {
-        method: 'POST',
-      })
+      await apiFetch('/api/v1/token/logout/', { method: 'POST' })
     }
   } catch (err) {
-    // Si falla, lo ignoramos: lo importante es limpiar el cliente
-    console.warn('No se pudo invalidar el token en el servidor:', err)
+    console.warn('Could not invalidate server token:', err)
   } finally {
-    // Limpieza del cliente SIEMPRE
     auth.clearAuth()
   }
 
-  // Cuenta atrás visual
   intervalId = setInterval(() => {
     if (seconds.value > 0) seconds.value--
   }, 1000)
 
-  // Redirección a los 5 segundos
   timeoutId = setTimeout(() => {
     router.push('/')
   }, 5000)
 })
 
 onUnmounted(() => {
-  // Limpiar timers si el usuario navega antes del timeout
   if (intervalId) clearInterval(intervalId)
   if (timeoutId) clearTimeout(timeoutId)
 })
@@ -58,26 +55,63 @@ onUnmounted(() => {
 .logout-view {
   display: flex;
   justify-content: center;
-  padding-top: 3rem;
+  align-items: center;
+  min-height: 60vh;
+  padding: 2rem 1rem;
 }
 
 .logout-card {
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  padding: 2rem 3rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem 3rem;
   text-align: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  max-width: 400px;
+  width: 100%;
+  box-shadow: var(--shadow-md);
+}
+
+.logout-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  font-size: 2rem;
+  margin-bottom: 1rem;
 }
 
 .logout-card h2 {
-  font-weight: 500;
-  margin-bottom: 0.75rem;
-  color: #555;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.3px;
 }
 
 .logout-card p {
-  color: #777;
-  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.logout-card strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.progress-bar {
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #6ba3ff);
+  transition: width 1s linear;
+  box-shadow: 0 0 12px var(--accent-glow);
 }
 </style>

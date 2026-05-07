@@ -1,9 +1,9 @@
 <template>
   <div id="app">
-    <!-- Barra de navegación -->
     <header class="navbar">
       <router-link to="/" class="logo">
-        🎵 Songs
+        <span class="logo-icon">♪</span>
+        <span>Songs</span>
       </router-link>
 
       <nav class="nav-links">
@@ -14,18 +14,21 @@
           to="/log-in"
           data-cy="login-cypress-test"
         >
-          Admin Log-In
+          Log In
         </router-link>
-        <router-link v-else to="/log-out">Log-Out</router-link>
+        <router-link v-else to="/log-out">Log Out</router-link>
 
         <router-link to="/faq">FAQ</router-link>
       </nav>
     </header>
 
-    <!-- Contenido principal: aquí se renderiza la vista activa -->
     <main class="main-content">
       <router-view />
     </main>
+
+    <footer class="footer">
+      <p>© 2026 Songs · Learn languages through music</p>
+    </footer>
   </div>
 </template>
 
@@ -40,7 +43,6 @@ const auth = useAuthStore()
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .navbar {
@@ -48,42 +50,57 @@ const auth = useAuthStore()
   align-items: center;
   justify-content: space-between;
   padding: 1rem 2rem;
-  background-color: #2c2c2c;
-  color: white;
-  border-bottom: 1px solid #444;
+  background-color: rgba(19, 24, 38, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: white;
-  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+.logo-icon {
+  font-size: 1.6rem;
+  color: var(--accent);
+  text-shadow: 0 0 16px var(--accent-glow);
 }
 
 .nav-links {
   display: flex;
-  gap: 1.5rem;
+  gap: 0.5rem;
 }
 
 .nav-links a {
-  color: #ccc;
-  text-decoration: none;
-  font-size: 0.95rem;
-  transition: color 0.2s;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
 }
 
 .nav-links a:hover {
-  color: white;
+  color: var(--text-primary);
+  background-color: var(--bg-elevated);
 }
 
 .nav-links a.router-link-active {
-  color: white;
-  font-weight: 500;
+  color: var(--accent);
+  background-color: var(--accent-dim);
 }
 
 .main-content {
   flex: 1;
-  padding: 2rem;
+  padding: 2.5rem 2rem;
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
@@ -91,10 +108,22 @@ const auth = useAuthStore()
 
 .footer {
   text-align: center;
-  padding: 1rem;
-  background-color: #f5f5f5;
-  color: #666;
+  padding: 1.5rem;
+  color: var(--text-muted);
   font-size: 0.85rem;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 600px) {
+  .navbar {
+    padding: 0.75rem 1rem;
+  }
+  .nav-links a {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.85rem;
+  }
+  .main-content {
+    padding: 1.5rem 1rem;
+  }
 }
 </style>

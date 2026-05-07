@@ -21,21 +21,18 @@ const routes = [
     path: '/log-out',
     name: 'logout',
     component: LogoutView,
-    component: FaqView,
   },
-
   {
     path: '/songs/:id',
     name: 'play',
     component: PlayView,
-    props: true
+    props: true,
   },
   {
     path: '/faq',
     name: 'faq',
     component: FaqView,
   },
-
   {
     path: '/:pathMatch(.*)*',
     redirect: '/',

@@ -14,14 +14,8 @@
 import { ref, watch } from 'vue'
 
 const props = defineProps({
-  song: {
-    type: Object,
-    required: true,
-  },
-  stopAudio: {
-    type: Boolean,
-    default: false,
-  },
+  song: { type: Object, required: true },
+  stopAudio: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['onTimeUpdate', 'onEnded'])
@@ -29,9 +23,7 @@ const emit = defineEmits(['onTimeUpdate', 'onEnded'])
 const audioEl = ref(null)
 
 function handleTimeUpdate() {
-  if (audioEl.value) {
-    emit('onTimeUpdate', audioEl.value.currentTime)
-  }
+  if (audioEl.value) emit('onTimeUpdate', audioEl.value.currentTime)
 }
 
 function handleEnded() {
@@ -51,6 +43,13 @@ watch(() => props.stopAudio, (shouldStop) => {
 <style scoped>
 .audio-player {
   width: 100%;
-  max-width: 500px;
+  max-width: 600px;
+  border-radius: var(--radius-md);
+  filter: drop-shadow(0 2px 12px rgba(255, 255, 255, 0.25));
+}
+
+/* Estilo dark para los controles del reproductor */
+.audio-player::-webkit-media-controls-panel {
+  background: rgba(255, 255, 255, 0.95);
 }
 </style>

@@ -1,10 +1,16 @@
 <template>
   <div class="faq-view">
-    <h1>Frequently Asked Questions</h1>
+    <div class="header">
+      <h1>Frequently Asked Questions</h1>
+      <p>Everything you need to know about Songs</p>
+    </div>
 
     <div class="faq-list">
       <details v-for="(item, idx) in faqs" :key="idx" class="faq-item">
-        <summary>{{ item.question }}</summary>
+        <summary>
+          <span>{{ item.question }}</span>
+          <span class="chevron">›</span>
+        </summary>
         <p>{{ item.answer }}</p>
       </details>
     </div>
@@ -14,38 +20,48 @@
 <script setup>
 const faqs = [
   {
-    question: '¿Qué es Songs?',
-    answer: 'Songs es una aplicación web para aprender idiomas a través de la música. Escucha canciones mientras completas los huecos de la letra.',
+    question: 'What is Songs?',
+    answer: 'Songs is a web app for learning languages through music. Listen to your favorite tracks while filling in the missing words from their lyrics.',
   },
   {
-    question: '¿Necesito registrarme para usar la aplicación?',
-    answer: 'No es obligatorio. Los usuarios anónimos pueden usar la plataforma, pero si te registras se guardará tu progreso e historial de canciones reproducidas.',
+    question: 'Do I need to register?',
+    answer: 'No registration is required to use the app, but signed-in users have their progress saved automatically.',
   },
   {
-    question: '¿Cómo funciona el modo karaoke?',
-    answer: 'La canción se reproduce mientras se muestran las letras sincronizadas. Algunas palabras están ocultas y debes escribirlas correctamente para que la reproducción continúe sin pausas.',
+    question: 'How does the karaoke mode work?',
+    answer: 'Songs play with synchronized lyrics. Some words are hidden — type them correctly and the playback continues without pauses.',
   },
   {
-    question: '¿Qué ocurre si no sé una palabra?',
-    answer: 'Puedes pulsar el botón "Skip" para saltarla. Cuenta como un fallo, pero te permite seguir con la canción.',
+    question: "What if I don't know a word?",
+    answer: 'Press the "Skip" button to skip it. It counts as a miss but lets you continue with the song.',
   },
   {
-    question: '¿Cómo se cuentan los aciertos y fallos?',
-    answer: 'Cada palabra correcta cuenta como un acierto. Cada palabra incorrecta tecleada o cada pulsación de "Skip" cuenta como un fallo. Al final de la canción se muestra el resumen.',
+    question: 'How are scores calculated?',
+    answer: 'Each correct word counts as a hit. Each incorrect attempt or skip counts as a miss. The summary appears as you play.',
   },
 ]
 </script>
 
 <style scoped>
 .faq-view {
-  max-width: 700px;
+  max-width: 720px;
   margin: 0 auto;
 }
 
-.faq-view h1 {
-  font-weight: 400;
-  margin-bottom: 2rem;
+.header {
   text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.header p {
+  color: var(--text-secondary);
 }
 
 .faq-list {
@@ -55,25 +71,49 @@ const faqs = [
 }
 
 .faq-item {
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  padding: 1rem 1.25rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.faq-item:hover,
+.faq-item[open] {
+  border-color: var(--border-strong);
 }
 
 .faq-item summary {
-  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.4rem;
+  font-weight: 600;
   cursor: pointer;
-  color: #333;
+  list-style: none;
+  color: var(--text-primary);
+  user-select: none;
 }
 
-.faq-item summary:hover {
-  color: #3b82f6;
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.chevron {
+  color: var(--accent);
+  font-size: 1.5rem;
+  transition: transform 0.2s;
+  font-weight: 700;
+}
+
+.faq-item[open] .chevron {
+  transform: rotate(90deg);
 }
 
 .faq-item p {
-  margin-top: 0.75rem;
-  color: #555;
+  padding: 0 1.4rem 1.2rem;
+  color: var(--text-secondary);
   font-size: 0.95rem;
+  line-height: 1.7;
 }
 </style>
