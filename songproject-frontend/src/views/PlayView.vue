@@ -65,6 +65,7 @@ const currentTime = ref(0)
 const stopAudio = ref(false)
 const liveSummary = ref({ correct: 0, wrong: 0 })
 const lyricsRef = ref(null)
+const hasSavedPlay = ref(false)
 
 const backgroundStyle = computed(() => {
   if (!song.value || !song.value.background_image) return {}
@@ -93,8 +94,23 @@ function onTimeUpdate(t) {
   currentTime.value = t
 }
 
-function onScoreChange(score) {
+async function onScoreChange(score) {
   liveSummary.value = score
+  if (!hasSavedPlay.value && auth.isAuthenticated && song.value) {
+    hasSavedPlay.value = true
+    try {
+      await apiFetch('/api/v1/songusers/', {
+        method: 'POST',
+        body: JSON.stringify({
+          song: song.value.id,
+          correct_guesses: score.correct,
+          wrong_guesses: score.wrong,
+        }),
+      })
+    } catch (err) {
+      console.error('Could not save SongUser:', err)
+    }
+  }
 }
 
 async function onEnded() {

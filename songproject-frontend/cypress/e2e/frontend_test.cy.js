@@ -52,7 +52,7 @@ describe('Use the aplication', () => {
       .should("be.visible")
       .click({ force: true })
     // wait and then type the third word: "love"
-    cy.wait(7000); // HE MODIFICADO ESTA LÍNEA PORQUE FALLA EL TIMING SI NO. 
+    cy.wait(8000); // HE MODIFICADO ESTA LÍNEA PORQUE FALLA EL TIMING //////////////////////////////
     cy.get('[data-cy="blankInput"]', { timeout: 15000 })
       .should("be.visible")
       .type('kk\n')
