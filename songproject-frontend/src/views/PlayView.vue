@@ -118,20 +118,7 @@ async function onEnded() {
     liveSummary.value = lyricsRef.value.getSummary()
   }
 
-  if (auth.isAuthenticated && song.value) {
-    try {
-      await apiFetch('/api/v1/songusers/', {
-        method: 'POST',
-        body: JSON.stringify({
-          song: song.value.id,
-          correct_guesses: liveSummary.value.correct,
-          wrong_guesses: liveSummary.value.wrong,
-        }),
-      })
-    } catch (err) {
-      console.error('Could not save SongUser:', err)
-    }
-  }
+  stopAudio.value = true
 }
 </script>
 
