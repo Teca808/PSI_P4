@@ -65,8 +65,6 @@ const currentTime = ref(0)
 const stopAudio = ref(false)
 const liveSummary = ref({ correct: 0, wrong: 0 })
 const lyricsRef = ref(null)
-const hasSavedPlay = ref(false)
-
 const backgroundStyle = computed(() => {
   if (!song.value || !song.value.background_image) return {}
   return {
@@ -96,8 +94,7 @@ function onTimeUpdate(t) {
 
 async function onScoreChange(score) {
   liveSummary.value = score
-  if (!hasSavedPlay.value && auth.isAuthenticated && song.value) {
-    hasSavedPlay.value = true
+  if (auth.isAuthenticated && song.value) {
     try {
       await apiFetch('/api/v1/songusers/', {
         method: 'POST',
